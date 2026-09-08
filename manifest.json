@@ -1,11 +1,12 @@
 {
   "schemaVersion": 1,
-  "id": "hunterhod.kanban",
+  "id": "hunterchristian.kanban",
   "name": "Kanban",
   "version": "0.1.0",
   "author": "Hunter Hodnett",
   "license": "MIT",
-  "description": "A kanban board of todo cards that lives on the desktop background, and read-only on the lock screen. Cards persist in ~/.local/state/kanban/board.json and can be driven over shell IPC.",
+  "homepage": "https://github.com/hunterchristian/omarchy-kanban",
+  "description": "Kanban board of todo cards that lives on the desktop background, always visible under your windows, and shows read-only on the lock screen. Cards persist in a watched JSON file and can be driven over shell IPC.",
   "kinds": [
     "service"
   ],

@@ -1,8 +1,11 @@
 # Kanban for Omarchy
 
-A kanban board of todo cards that lives on the desktop background, and shows
-read-only on the lock screen. A plugin for the Omarchy 4 shell
-(`omarchy-shell`, Quickshell).
+A kanban board of todo cards that lives on the desktop background, always
+visible under your windows, and shows read-only on the lock screen. A plugin
+for the Omarchy 4 shell (`omarchy-shell`, Quickshell).
+
+Other kanban plugins open a panel from the bar. This one is the desktop: no
+click to open, nothing to dismiss. Clear a workspace and the board is there.
 
 - Three columns by default: Todo, Doing, Done. Columns are editable in the
   data file.
@@ -17,14 +20,35 @@ read-only on the lock screen. A plugin for the Omarchy 4 shell
 ## Install
 
 ```bash
-git clone <this repo> ~/.config/omarchy/plugins/hunterhod.kanban
-~/.config/omarchy/plugins/hunterhod.kanban/install.sh        # desktop board
-~/.config/omarchy/plugins/hunterhod.kanban/install-lock.sh   # lock screen
+omarchy plugin add https://github.com/hunterchristian/omarchy-kanban.git --enable
 ```
 
-Both scripts use shell IPC when `omarchy-shell` is running and edit
+That gives you the desktop board. The lock screen is a separate, explicit
+step because it replaces the built-in lock plugin with a personal clone:
+
+```bash
+~/.config/omarchy/plugins/hunterchristian.kanban/install-lock.sh
+```
+
+`install.sh` is the equivalent of `--enable` for a manual `git clone`. Both
+scripts use shell IPC when `omarchy-shell` is running and edit
 `~/.config/omarchy/shell.json` directly when it is not (for example over ssh).
 Config edits made without the shell take effect at the next shell start.
+
+## Remove
+
+```bash
+omarchy plugin remove <user>.lock            # only if you installed the lock screen
+omarchy plugin remove hunterchristian.kanban
+rm -rf ~/.local/state/kanban                 # your cards, if you want them gone too
+```
+
+Removing the lock clone switches the shell back to the built-in lock screen.
+
+## Dependencies
+
+Nothing beyond Omarchy 4: Quickshell (ships with Omarchy), `jq` and `awk`
+for the install scripts. No network access, no sudo, no background daemons.
 
 ## Lock screen
 
@@ -41,12 +65,13 @@ A cloned plugin no longer receives Omarchy's own updates to the lock screen.
 After an Omarchy update, rebuild the clone from the new built-in:
 
 ```bash
-~/.config/omarchy/plugins/hunterhod.kanban/install-lock.sh --force
+~/.config/omarchy/plugins/hunterchristian.kanban/install-lock.sh --force
 ```
 
-To go back to the stock lock screen: `omarchy plugin remove hunterhod.lock`.
+To go back to the stock lock screen: `omarchy plugin remove <user>.lock`.
 
-Anything on the board is visible to anyone at the locked machine.
+Anything on the board is visible to anyone at the locked machine. Keep client
+names and secrets off it.
 
 ## IPC
 
@@ -88,3 +113,7 @@ column no longer exists fall into the first column.
 - `KanbanStore.qml`: the JSON file store.
 - `LockBoard.qml`: read-only wrapper the lock clone loads.
 - `lock/LockView.kanban.qml`: the snippet inserted into the cloned lock view.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). MIT licensed.
