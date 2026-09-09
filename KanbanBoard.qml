@@ -12,7 +12,18 @@ Item {
   property int maxWidth: 1400
   property int columnGap: 16
   property int cardGap: 8
-  property int pad: 12
+  property int pad: 14
+  // The shell's type scale is tuned for a 26px bar. A board read from across
+  // the room wants more, so every size below is the shell token times this.
+  property real typeScale: 1.5
+  readonly property int cardFont: Math.round(Style.font.body * typeScale)
+  readonly property int headerFont: Math.round(Style.font.subtitle * typeScale)
+  readonly property int smallFont: Math.round(Style.font.bodySmall * typeScale)
+  readonly property int glyphFont: Math.round(Style.font.heading * typeScale)
+  readonly property int cardPad: 12
+  readonly property int addFieldHeight: Math.round(cardFont * 2.6)
+  // Room kept in an empty column so the placeholder and a drop target exist.
+  readonly property int emptyListHeight: Math.round(cardFont * 4)
 
   // The region that should receive pointer input. The desktop window masks
   // to this so clicks outside the board still reach the wallpaper.
@@ -114,7 +125,12 @@ Item {
           readonly property var cardList: board.cardsFor(columnId, board.revision)
 
           width: Math.floor((row.width - board.columnGap * Math.max(0, board.columns.length - 1)) / Math.max(1, board.columns.length))
-          height: row.height
+          // Fit the content, never taller than the board. Row keeps columns
+          // top-aligned, so a short column does not float.
+          readonly property int contentHeight: board.pad * 2 + header.height + board.pad
+            + Math.max(board.emptyListHeight, cardsColumn.height)
+            + (addField.visible ? board.pad + addField.height : 0)
+          height: Math.min(row.height, contentHeight)
 
           // Index among this column's cards (excluding `excludeId`) that a drop
           // at column-local `y` should land on.
@@ -155,7 +171,7 @@ Item {
                 text: column.title.toUpperCase()
                 color: Color.accent
                 font.family: Style.font.family
-                font.pixelSize: Style.font.subtitle
+                font.pixelSize: board.headerFont
                 font.letterSpacing: 2
                 font.bold: true
               }
@@ -167,7 +183,7 @@ Item {
                 text: column.cardList.length
                 color: Color.muted
                 font.family: Style.font.family
-                font.pixelSize: Style.font.subtitle
+                font.pixelSize: board.headerFont
               }
 
               Text {
@@ -178,7 +194,7 @@ Item {
                 text: clearArea.containsMouse ? "clear all" : "clear"
                 color: clearArea.containsMouse ? Color.urgent : Color.muted
                 font.family: Style.font.family
-                font.pixelSize: Style.font.bodySmall
+                font.pixelSize: board.smallFont
 
                 MouseArea {
                   id: clearArea
@@ -217,7 +233,7 @@ Item {
                 text: column.index === 0 ? "Nothing to do" : "Empty"
                 color: Util.alpha(Color.foreground, 0.35)
                 font.family: Style.font.family
-                font.pixelSize: Style.font.body
+                font.pixelSize: board.cardFont
                 font.italic: true
               }
 
@@ -264,7 +280,7 @@ Item {
                     Rectangle {
                       id: cardBody
                       width: parent.width
-                      height: contentColumn.height + 20
+                      height: contentColumn.height + board.cardPad * 2
                       color: Util.alpha(Color.background, card.hot || card.editing ? 0.9 : 0.75)
                       border.width: 1
                       border.color: card.editing ? Color.accent : Util.alpha(Color.foreground, card.hot ? 0.3 : 0.14)
@@ -272,9 +288,9 @@ Item {
 
                       Column {
                         id: contentColumn
-                        x: 10
-                        y: 10
-                        width: parent.width - 20 - (deleteGlyph.visible ? 16 : 0)
+                        x: board.cardPad
+                        y: board.cardPad
+                        width: parent.width - board.cardPad * 2 - (deleteGlyph.visible ? board.glyphFont : 0)
 
                         Text {
                           visible: !card.editing
@@ -283,7 +299,7 @@ Item {
                           wrapMode: Text.Wrap
                           color: column.isLast ? Color.muted : Color.foreground
                           font.family: Style.font.family
-                          font.pixelSize: Style.font.body
+                          font.pixelSize: board.cardFont
                           font.strikeout: column.isLast
                         }
 
@@ -296,7 +312,7 @@ Item {
                           selectionColor: Util.alpha(Color.accent, 0.45)
                           selectedTextColor: Color.foreground
                           font.family: Style.font.family
-                          font.pixelSize: Style.font.body
+                          font.pixelSize: board.cardFont
                           Keys.onPressed: function(event) {
                             if (event.key === Qt.Key_Escape) {
                               board.editingId = ""
@@ -322,7 +338,7 @@ Item {
                         text: "×"
                         color: deleteArea.containsMouse ? Color.urgent : Color.muted
                         font.family: Style.font.family
-                        font.pixelSize: Style.font.heading
+                        font.pixelSize: board.glyphFont
 
                         MouseArea {
                           id: deleteArea
@@ -383,7 +399,7 @@ Item {
               id: addField
               visible: !board.readOnly
               width: parent.width
-              height: 34
+              height: board.addFieldHeight
               color: Util.alpha(Color.background, addInput.activeFocus ? 0.9 : 0.5)
               border.width: 1
               border.color: addInput.activeFocus ? Color.accent : Util.alpha(Color.foreground, 0.14)
@@ -392,15 +408,15 @@ Item {
               TextInput {
                 id: addInput
                 anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
+                anchors.leftMargin: board.cardPad
+                anchors.rightMargin: board.cardPad
                 verticalAlignment: TextInput.AlignVCenter
                 clip: true
                 color: Color.foreground
                 selectionColor: Util.alpha(Color.accent, 0.45)
                 selectedTextColor: Color.foreground
                 font.family: Style.font.family
-                font.pixelSize: Style.font.body
+                font.pixelSize: board.cardFont
                 onAccepted: {
                   var next = text.trim()
                   if (!next) return
@@ -420,7 +436,7 @@ Item {
                 text: "+ Add a card"
                 color: Util.alpha(Color.foreground, 0.4)
                 font.family: Style.font.family
-                font.pixelSize: Style.font.body
+                font.pixelSize: board.cardFont
               }
             }
           }
@@ -437,7 +453,7 @@ Item {
     x: board.dragX - board.dragOffsetX
     y: board.dragY - board.dragOffsetY
     width: board.dragWidth
-    height: ghostText.implicitHeight + 20
+    height: ghostText.implicitHeight + board.cardPad * 2
     color: Util.alpha(Color.background, 0.95)
     border.width: 1
     border.color: Color.accent
@@ -445,14 +461,14 @@ Item {
 
     Text {
       id: ghostText
-      x: 10
-      y: 10
-      width: parent.width - 20
+      x: board.cardPad
+      y: board.cardPad
+      width: parent.width - board.cardPad * 2
       text: board.dragTitle
       wrapMode: Text.Wrap
       color: Color.foreground
       font.family: Style.font.family
-      font.pixelSize: Style.font.body
+      font.pixelSize: board.cardFont
     }
   }
 
@@ -463,6 +479,6 @@ Item {
     text: board.store ? board.store.lastError : ""
     color: Color.urgent
     font.family: Style.font.family
-    font.pixelSize: Style.font.caption
+    font.pixelSize: board.smallFont
   }
 }

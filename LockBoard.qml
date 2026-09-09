@@ -7,12 +7,12 @@ Item {
   id: root
 
   KanbanStore {
-    id: store
+    id: kanbanStore
   }
 
   KanbanBoard {
     anchors.fill: parent
-    store: store
+    store: kanbanStore
     readOnly: true
   }
 }

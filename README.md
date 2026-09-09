@@ -7,6 +7,10 @@ for the Omarchy 4 shell (`omarchy-shell`, Quickshell).
 Other kanban plugins open a panel from the bar. This one is the desktop: no
 click to open, nothing to dismiss. Clear a workspace and the board is there.
 
+![The board on the desktop background](preview.png)
+
+![The same board, read-only, on the lock screen](docs/lock-screen.png)
+
 - Three columns by default: Todo, Doing, Done. Columns are editable in the
   data file.
 - Drag a card between columns or to reorder. Double-click a card to edit it.

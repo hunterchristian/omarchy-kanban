@@ -12,8 +12,10 @@ Item {
 
   property int margin: 48
 
+  // Not `id: store`: inside KanbanBoard the binding `store: store` would
+  // resolve to the board's own property, not this object.
   KanbanStore {
-    id: store
+    id: kanbanStore
   }
 
   // omarchy-shell kanban <method> [args]
@@ -28,31 +30,31 @@ Item {
     target: "kanban"
 
     function add(column: string, title: string): string {
-      return store.add(column, title) || "unknown column or empty title"
+      return kanbanStore.add(column, title) || "unknown column or empty title"
     }
 
     function move(id: string, column: string): string {
-      return store.move(id, column, -1) ? "ok" : "unknown card or column"
+      return kanbanStore.move(id, column, -1) ? "ok" : "unknown card or column"
     }
 
     function done(id: string): string {
-      return store.move(id, store.lastColumnId(), -1) ? "ok" : "unknown card"
+      return kanbanStore.move(id, kanbanStore.lastColumnId(), -1) ? "ok" : "unknown card"
     }
 
     function remove(id: string): string {
-      return store.remove(id) ? "ok" : "unknown card"
+      return kanbanStore.remove(id) ? "ok" : "unknown card"
     }
 
     function clear(column: string): string {
-      return String(store.clearColumn(column))
+      return String(kanbanStore.clearColumn(column))
     }
 
     function list(): string {
-      return JSON.stringify({ columns: store.columns, cards: store.cards })
+      return JSON.stringify({ columns: kanbanStore.columns, cards: kanbanStore.cards })
     }
 
     function reload(): void {
-      store.reload()
+      kanbanStore.reload()
     }
   }
 
@@ -82,8 +84,9 @@ Item {
         id: kanban
         anchors.fill: parent
         anchors.margins: root.margin
-        store: store
+        store: kanbanStore
       }
+
     }
   }
 }
