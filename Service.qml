@@ -78,7 +78,11 @@ Item {
       exclusionMode: ExclusionMode.Normal
       exclusiveZone: 0
 
-      mask: Region { item: kanban.inputRegionItem }
+      // Only the board takes input, so the wallpaper keeps its double-click.
+      // While a text field is focused the whole screen does, so clicking
+      // anywhere blurs it.
+      property Region boardRegion: Region { item: kanban.inputRegionItem }
+      mask: kanban.textActive ? null : boardRegion
 
       KanbanBoard {
         id: kanban

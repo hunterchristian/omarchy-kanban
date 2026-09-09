@@ -40,6 +40,16 @@ Item {
 
   property string editingId: ""
 
+  // Number of text fields on the board that hold keyboard focus. The window
+  // widens its input mask while this is nonzero so a click anywhere, even
+  // on the wallpaper, lands on the catch-all below and blurs the field.
+  property int textFocus: 0
+  readonly property bool textActive: textFocus > 0
+
+  function blur() {
+    board.forceActiveFocus()
+  }
+
   // Drag state. The dragged card stays in place (dimmed) and a ghost follows
   // the pointer at board level, so nothing has to be reparented out of a
   // clipped list mid-drag.
@@ -95,6 +105,18 @@ Item {
     dragId = ""
     dragTitle = ""
     dropColumnIndex = -1
+  }
+
+  // Catch-all: a press that no card, glyph, or field claimed takes focus
+  // away from whatever text field had it, which commits or closes it.
+  MouseArea {
+    anchors.fill: parent
+    z: -1
+    acceptedButtons: Qt.AllButtons
+    onPressed: function(mouse) {
+      board.blur()
+      mouse.accepted = false
+    }
   }
 
   Item {
@@ -256,25 +278,28 @@ Item {
                     readonly property string cardTitle: modelData.title
                     readonly property bool editing: board.editingId === cardId
                     readonly property bool beingDragged: board.dragId === cardId
-                    readonly property bool hot: cardArea.containsMouse && !board.dragging
+                    readonly property bool hot: (cardArea.containsMouse || editArea.containsMouse || deleteArea.containsMouse) && !board.dragging
 
                     width: cardsColumn.width
                     height: cardBody.height
                     opacity: beingDragged ? 0.35 : 1
 
                     function startEdit() {
-                      if (board.readOnly) return
+                      if (board.readOnly || card.editing) return
                       editor.text = card.cardTitle
                       board.editingId = card.cardId
                       editor.forceActiveFocus()
                       editor.selectAll()
                     }
 
+                    // Enter or blur. An emptied card is a deleted card; Escape
+                    // is the way to keep the old text.
                     function commitEdit() {
                       if (!card.editing) return
                       var next = editor.text.trim()
                       board.editingId = ""
-                      if (next && next !== card.cardTitle) board.store.update(card.cardId, next)
+                      if (!next) board.store.remove(card.cardId)
+                      else if (next !== card.cardTitle) board.store.update(card.cardId, next)
                     }
 
                     Rectangle {
@@ -290,7 +315,7 @@ Item {
                         id: contentColumn
                         x: board.cardPad
                         y: board.cardPad
-                        width: parent.width - board.cardPad * 2 - (deleteGlyph.visible ? board.glyphFont : 0)
+                        width: parent.width - board.cardPad * 2 - (actions.visible ? actions.width + 4 : 0)
 
                         Text {
                           visible: !card.editing
@@ -323,32 +348,13 @@ Item {
                               event.accepted = true
                             }
                           }
-                          onActiveFocusChanged: if (!activeFocus) card.commitEdit()
+                          onActiveFocusChanged: {
+                            board.textFocus += activeFocus ? 1 : -1
+                            if (!activeFocus) card.commitEdit()
+                          }
                         }
                       }
 
-                      Text {
-                        id: deleteGlyph
-                        z: 2
-                        visible: !board.readOnly && card.hot && !card.editing
-                        anchors.top: parent.top
-                        anchors.right: parent.right
-                        anchors.topMargin: 4
-                        anchors.rightMargin: 8
-                        text: "×"
-                        color: deleteArea.containsMouse ? Color.urgent : Color.muted
-                        font.family: Style.font.family
-                        font.pixelSize: board.glyphFont
-
-                        MouseArea {
-                          id: deleteArea
-                          anchors.fill: parent
-                          anchors.margins: -4
-                          hoverEnabled: true
-                          cursorShape: Qt.PointingHandCursor
-                          onClicked: board.store.remove(card.cardId)
-                        }
-                      }
                     }
 
                     MouseArea {
@@ -380,15 +386,62 @@ Item {
                       }
                       onReleased: function(mouse) {
                         armed = false
-                        if (!board.dragging) return
-                        var p = cardArea.mapToItem(board, mouse.x, mouse.y)
-                        board.endDrag(p.x, p.y)
+                        if (board.dragging) {
+                          var p = cardArea.mapToItem(board, mouse.x, mouse.y)
+                          board.endDrag(p.x, p.y)
+                          return
+                        }
+                        // A press and release with no drag is a click: edit.
+                        card.startEdit()
                       }
                       onCanceled: {
                         armed = false
                         if (board.dragging) board.cancelDrag()
                       }
-                      onDoubleClicked: card.startEdit()
+                    }
+
+                    // Hover actions. Declared after cardArea so they sit above
+                    // it in the stacking order and receive the click.
+                    Row {
+                      id: actions
+                      visible: !board.readOnly && card.hot && !card.editing
+                      anchors.top: parent.top
+                      anchors.right: parent.right
+                      anchors.topMargin: 2
+                      anchors.rightMargin: board.cardPad - 2
+                      spacing: 6
+
+                      Text {
+                        text: "✎"
+                        color: editArea.containsMouse ? Color.accent : Color.muted
+                        font.family: Style.font.family
+                        font.pixelSize: board.glyphFont
+
+                        MouseArea {
+                          id: editArea
+                          anchors.fill: parent
+                          anchors.margins: -4
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: card.startEdit()
+                        }
+                      }
+
+                      Text {
+                        text: "×"
+                        color: deleteArea.containsMouse ? Color.urgent : Color.muted
+                        font.family: Style.font.family
+                        font.pixelSize: board.glyphFont
+
+                        MouseArea {
+                          id: deleteArea
+                          anchors.fill: parent
+                          anchors.margins: -4
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: board.store.remove(card.cardId)
+                        }
+                      }
                     }
                   }
                 }
@@ -423,9 +476,10 @@ Item {
                   board.store.add(column.columnId, next)
                   text = ""
                 }
+                onActiveFocusChanged: board.textFocus += activeFocus ? 1 : -1
                 Keys.onEscapePressed: {
                   text = ""
-                  focus = false
+                  board.blur()
                 }
               }
 

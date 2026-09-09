@@ -13,8 +13,11 @@ click to open, nothing to dismiss. Clear a workspace and the board is there.
 
 - Three columns by default: Todo, Doing, Done. Columns are editable in the
   data file.
-- Drag a card between columns or to reorder. Double-click a card to edit it.
-  Hover a card for the delete glyph. The last column has a "clear" action.
+- Click a card to edit it: Enter saves, Escape cancels, Shift+Enter adds a
+  line. Clearing the text and leaving deletes the card. Drag a card to move it
+  between columns or to reorder.
+- Hover a card for the edit and delete glyphs. The last column has a "clear"
+  action in its header.
 - Type in the field at the bottom of a column and press Enter to add a card.
 - Cards persist in `~/.local/state/kanban/board.json`. The file is watched,
   so edits from a script or another Claude session appear at once.
